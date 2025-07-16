@@ -2,13 +2,13 @@
 #include <iostream>
 
 //https://github.com/kashif/cuda-workshop/blob/master/cutil/inc/cutil_math.h
-#include "cutil_math.cuh"
-
-#include "body.cuh"
-#include "universalConstants.hpp"
 #include "camera.cuh"
+#include "cutil_math.cuh"
 #include "loadImage.hpp"
-#include "rendering.hpp"
+#include "Renderer.cuh"
+#include "Scene.cuh"
+#include "Texture.cuh"
+#include "universalConstants.hpp"
 
 void printUsage(char* programName){
     printf("USAGE: %s device imageDim num_frames debug\n", programName);
@@ -22,7 +22,7 @@ void printUsage(char* programName){
 int main(int argc, char* argv[]) {
     // take care of command line stuff
     unsigned int numFrames = 16;
-    int imageDim = 1024;
+    uint imageDim = 1024;
     //const char* starsPath = "assets/test_uv.jpg";
     const char* starsPath = "assets/8k_stars_milky_way.jpg";
     bool renderOnCPU = false;
@@ -52,37 +52,31 @@ int main(int argc, char* argv[]) {
 
     printf("rendering on %s\n", renderOnCPU ? "CPU" : "GPU");
 
-    //init camera
-    camera c({50*DEG2RAD, 50*DEG2RAD}, {0,0,0}, {0,0,0}, {imageDim,imageDim});
-
-    //load in sun texture
-    uchar3* sunTexture;
-    uint2 sunTextureDim = loadImage("assets/8k_sun.jpg", &sunTexture);
-
-    //load in sky-sphere texture
-    uchar3* stars;
-    uint2 starsDim = loadImage(starsPath, &stars); //host malloc happens somewhere in here
+    auto constants = real_universal_constants();
     
     // set up scene
-    body bodies[] = {
-        body(6, 1e11, {250,0,0},{0,0,0},{6,0,0}),
-        body(20, 0, {250,-60,0},{0,0,0}, sunTexture, sunTextureDim),
+    auto bodies = new Body[2] {
+        Body(20, 0, {250,-60,0},{0,0,0}, Material(Texture::loadFromFile("assets/8k_sun.jpg"))),
+        Body(6, 1e11, {250,0,0},{0,0,0}, Material({41,42,43}))
         //body(6, 0, {140,4,0},{0,0,0},{0,128,0}),
     };
-    constexpr int bodiesCount = sizeof(bodies)/sizeof(body);    
 
-    if(renderOnCPU){
-        renderCPU(numFrames, c, 
-                bodies, bodiesCount, 
-                sunTextureDim, sunTexture,
-                starsDim, stars);
-    }else{
-        renderGPU(numFrames, c, 
-                bodies, bodiesCount, 
-                sunTextureDim, sunTexture,
-                starsDim, stars);
-    }
-    
+    auto scene = Scene(
+        Camera(
+                {50*DEG2RAD, 50*DEG2RAD},
+                {0,0,0},
+                {0,0,0},
+                {imageDim,imageDim}
+            ),
+            Buffer<Body>(bodies, 2),
+            Material(Texture::loadFromFile(starsPath))
+    );
+
+    Renderer renderer;
+    CudaContext cuContext;
+
+    FrameBuffer frameResult = renderOnCPU ? renderer.renderCPU(scene) : renderer.renderGPU(scene, cuContext);
+    saveImage("output/out.png", frameResult.data, frameResult.size, 0);
     printf("Done rendering\n");
     return 0;
 }

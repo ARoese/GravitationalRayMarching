@@ -2,14 +2,16 @@ cmake_minimum_required(VERSION 3.31)
 project(GravitationalRayMarching CUDA)
 
 set(CMAKE_CUDA_STANDARD 20)
-
-add_library(GravitationalRayMarching STATIC )
+add_library(GravitationalRayMarching STATIC)
 target_include_directories(GravitationalRayMarching PUBLIC lib/include)
 target_include_directories(GravitationalRayMarching PUBLIC lib/CImg)
 file(GLOB LIB_SOURCES CONFIGURE_DEPENDS
         "lib/src/*.cu"
 )
 target_sources(GravitationalRayMarching PRIVATE ${LIB_SOURCES})
+target_compile_options(GravitationalRayMarching PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
+        -Wno-deprecated-gpu-targets
+        >)
 
 add_executable(GravitationalRayMarchingMain main.cu)
 target_include_directories(GravitationalRayMarchingMain PUBLIC lib/include)
@@ -27,19 +29,19 @@ set_target_properties(GravitationalRayMarchingMain PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON LINKER_LANGUAGE CUDA)
 
 add_custom_target( clear_rendered_output_frames
-        COMMAND rm outputs/*
+        COMMAND rm -fr outputs
         WORKING_DIRECTORY $<TARGET_FILE_DIR:GravitationalRayMarchingMain>
         COMMENT "clear previously rendered frames"
 )
 
 add_custom_target( render_frames_gpu
-        COMMAND GravitationalRayMarchingMain gpu 512 256 true
+        COMMAND GravitationalRayMarchingMain gpu 2048 512 true
         WORKING_DIRECTORY $<TARGET_FILE_DIR:GravitationalRayMarchingMain>
         COMMENT "render frames on gpu and place in outputs dir"
 )
 
 add_custom_target( merge_frames
-        COMMAND ffmpeg -framerate 30 -stream_loop 4 -i "outputs/out_%03d.png" -c:v libx264 -r 20 -y outputs/out.mp4
+        COMMAND ffmpeg -framerate 60 -stream_loop 4 -i "outputs/out_%03d.png" -c:v libx264 -r 20 -y outputs/out.mp4
         WORKING_DIRECTORY $<TARGET_FILE_DIR:GravitationalRayMarchingMain>
         COMMENT "combine output frames into an mp4"
 )
