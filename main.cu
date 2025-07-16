@@ -18,6 +18,16 @@ void printUsage(char* programName){
     printf("debug: true/false, whether to use debug uv textures\n");
 }
 
+Body makeBody( float radius, float mass, float3 position, float3 rotation, Material mat, UniversalConstants constants) {
+    auto schwarz = Body::getSchwarzschildRadiusForMass(mass, constants);
+    return Body(
+        max(radius, schwarz),
+        mass,
+        position,
+        rotation,
+        radius < schwarz ? Material({0,0,0}) : std::move(mat));
+}
+
 //3840,2160 is 4K
 int main(int argc, char* argv[]) {
     // take care of command line stuff
@@ -52,12 +62,13 @@ int main(int argc, char* argv[]) {
 
     printf("rendering on %s\n", renderOnCPU ? "CPU" : "GPU");
 
-    auto constants = real_universal_constants();
+    //UniversalConstants constants = real_universal_constants();
+    UniversalConstants constants = { .G = 6.6743e-11, .C = 10 };
     
     // set up scene
     auto bodies = new Body[2] {
-        Body(20, 0, {250,-60,0},{0,0,0}, Material(Texture::loadFromFile("assets/8k_sun.jpg"))),
-        Body(6, 1e11, {250,0,0},{0,0,0}, Material({41,42,43}))
+        makeBody(20, 0, {250,-60,0},{0,0,0}, Material(Texture::loadFromFile("assets/8k_sun.jpg")), constants),
+        makeBody(6, 1e11, {250,0,0},{0,0,0}, Material({0,0,0}), constants)
         //body(6, 0, {140,4,0},{0,0,0},{0,128,0}),
     };
 
@@ -69,7 +80,8 @@ int main(int argc, char* argv[]) {
                 {imageDim,imageDim}
             ),
             Buffer<Body>(bodies, 2),
-            Material(Texture::loadFromFile(starsPath))
+            Material(Texture::loadFromFile(starsPath)),
+            constants
     );
 
     Renderer renderer;
