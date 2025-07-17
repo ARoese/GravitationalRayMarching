@@ -2,6 +2,8 @@
 #include <iostream>
 
 //https://github.com/kashif/cuda-workshop/blob/master/cutil/inc/cutil_math.h
+#include <filesystem>
+
 #include "camera.cuh"
 #include "cutil_math.cuh"
 #include "loadImage.hpp"
@@ -26,6 +28,35 @@ Body makeBody( float radius, float mass, float3 position, float3 rotation, Mater
         position,
         rotation,
         radius < schwarz ? Material({0,0,0}) : std::move(mat));
+}
+
+void renderRotationCenteredOn(
+    std::string destFolder,
+    int numFrames,
+    Scene scene,
+    Body& center,
+    float distanceFromCenter,
+    std::function<FrameBuffer(Scene&)> renderScene
+    ) {
+    float3 camRotCenter = center.position; //point that the camera rotates around
+    for (int i = 0; i < numFrames; i++) {
+        std::cout << std::format("Rendering frame #{}", i) << std::endl;
+        unsigned int camDistance = 250; //distance of camera from center object
+
+        //update camera position
+        float angle = ((float)i/numFrames)*2*M_PI;
+        scene.cam.camPos = {cos(angle),sin(angle),0};
+        scene.cam.camPos *= camDistance;
+        scene.cam.camPos += camRotCenter;
+        scene.cam.camRot = {0,0,angle+(float)M_PI};
+
+        //render image
+        FrameBuffer frameResult = renderScene(scene);
+        auto destination = std::filesystem::path(destFolder)
+            .append("out.png")
+            .string();
+        saveImage(destination.c_str(), frameResult.data, frameResult.size, i);
+    }
 }
 
 //3840,2160 is 4K
@@ -66,8 +97,8 @@ int main(int argc, char* argv[]) {
     UniversalConstants constants = { .G = 6.6743e-11, .C = 10 };
     
     // set up scene
-    auto bodies = new Body[2] {
-        makeBody(20, 0, {250,-60,0},{0,0,0}, Material(Texture::loadFromFile("assets/8k_sun.jpg")), constants),
+    auto bodies = new Body[1] {
+        //makeBody(20, 0, {250,-60,0},{0,0,0}, Material(Texture::loadFromFile("assets/8k_sun.jpg")), constants),
         makeBody(6, 1e11, {250,0,0},{0,0,0}, Material({0,0,0}), constants)
         //body(6, 0, {140,4,0},{0,0,0},{0,128,0}),
     };
@@ -79,7 +110,7 @@ int main(int argc, char* argv[]) {
                 {0,0,0},
                 {imageDim,imageDim}
             ),
-            Buffer<Body>(bodies, 2),
+            Buffer<Body>(bodies, 1),
             Material(Texture::loadFromFile(starsPath)),
             constants
     );
@@ -87,8 +118,16 @@ int main(int argc, char* argv[]) {
     Renderer renderer;
     CudaContext cuContext;
 
-    FrameBuffer frameResult = renderOnCPU ? renderer.renderCPU(scene) : renderer.renderGPU(scene, cuContext);
-    saveImage("output/out.png", frameResult.data, frameResult.size, 0);
+    auto renderScene = [&](Scene& scene) {
+        return renderOnCPU ? renderer.renderCPU(scene) : renderer.renderGPU(scene, cuContext);
+    };
+
+    renderRotationCenteredOn(
+        "outputs/",
+        numFrames, std::move(scene), scene.bodies[0],
+        250, renderScene);
+
+
     printf("Done rendering\n");
     return 0;
 }

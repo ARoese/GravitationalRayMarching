@@ -35,7 +35,7 @@ add_custom_target( clear_rendered_output_frames
 )
 
 add_custom_target( render_frames_gpu
-        COMMAND GravitationalRayMarchingMain gpu 2048 512 true
+        COMMAND GravitationalRayMarchingMain gpu 1024 512 true
         WORKING_DIRECTORY $<TARGET_FILE_DIR:GravitationalRayMarchingMain>
         COMMENT "render frames on gpu and place in outputs dir"
 )
