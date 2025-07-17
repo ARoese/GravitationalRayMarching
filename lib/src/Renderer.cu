@@ -45,6 +45,8 @@ __device__ __host__ uchar3 renderPixel(const Scene& scene, uint2 idx){
                         *rayDir));
 
     Ray r(scene.cam.camPos, rayDir);
+    // TODO: allow the rendering characteristics to be passed in. For example,
+    // allow changing of the step count and the timestep.
     #pragma unroll
     for(int i = 0; i < 10000; i++){
         auto& bodies = scene.bodies;
@@ -64,9 +66,13 @@ __device__ __host__ uchar3 renderPixel(const Scene& scene, uint2 idx){
         }
     }
 
-    //if the ray hasn't hit anything after all steps, it is assumed to have hit skybox
+    // if the ray hasn't hit anything after all steps, it is assumed to have hit skybox
+    // this is intentionally passing direction and not position.
+    // This effectively projects the ray where it would have gone in the skybox if it was stepped to infinity.
+    // this prevents bugs where if the ray hasn't actually crossed the origin by the end of the render,
+    // the ray would get projected onto the (for example) -X of the skybox despite it pointing towards +X.
     return scene.nohit.sample(uvMapSphere(
-        r.position,
+        r.direction,
         make_float3(0,0,0),
         make_float3(0,0,0))
         );
