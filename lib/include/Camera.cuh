@@ -1,9 +1,8 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 #include <vector_types.h>
-
-#include "Transferable.cuh"
-#include "universalConstants.hpp"
+#include "api/UniversalConstants.h"
+#include "api/D_Camera.h"
 
 class Camera {
     public:
@@ -12,6 +11,11 @@ class Camera {
     float3 camRot = {0,0,0};
     uint2 resolution = {255,255};
     __host__ Camera(float2 fov, float3 camPos, float3 camRot, uint2 resolution);
+    __host__ Camera(D_Camera o) :
+        fov({o.fov.x, o.fov.y}),
+        camPos({o.camPos.x, o.camPos.y, o.camPos.z,}),
+        camRot({o.camRot.x, o.camRot.y, o.camRot.z,}),
+        resolution({o.resolution.x, o.resolution.y}) {}
 };
 
 #endif

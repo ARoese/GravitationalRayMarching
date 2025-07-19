@@ -10,7 +10,7 @@
 #include "Renderer.cuh"
 #include "Scene.cuh"
 #include "Texture.cuh"
-#include "universalConstants.hpp"
+#include "lib/include/api/UniversalConstants.h"
 
 void printUsage(char* programName){
     printf("USAGE: %s device imageDim num_frames debug\n", programName);

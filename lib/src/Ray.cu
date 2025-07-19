@@ -1,13 +1,13 @@
 #include "Ray.cuh"
 #include "cutil_math.cuh"
-#include "universalConstants.hpp"
+#include "../include/api/UniversalConstants.h"
 
 Ray::Ray(float3 position, float3 direction)
     : position(position), direction(direction)
     {}
 
 void Ray::step(float timestep, const Buffer<Body>& bodies, const UniversalConstants& c){
-    direction *= CONST_C;
+    direction *= c.C;
     position += direction*timestep;
     for(int i = 0; i < bodies.elems; i++){
         direction += getAccelerationTo(bodies[i], c)*timestep;

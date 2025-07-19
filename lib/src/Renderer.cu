@@ -10,7 +10,7 @@
 #include "cutil_math.cuh"
 #include "cmatrix.cuh"
 
-#include "universalConstants.hpp"
+#include "../include/api/UniversalConstants.h"
 #include "Ray.cuh"
 #include "loadImage.hpp"
 

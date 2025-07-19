@@ -4,6 +4,7 @@
 
 #ifndef MATERIAL_CUH
 #define MATERIAL_CUH
+#include "api/D_Material.h"
 #include "Texture.cuh"
 #include "Transferable.cuh"
 
@@ -13,6 +14,16 @@ public:
         TEXTURE,
         FLAT
     } type;
+
+    Type fromDomain(D_Material::Type o) {
+        switch (o) {
+            case D_Material::Type::TEXTURE:
+                return TEXTURE;
+            case D_Material::Type::FLAT:
+                return FLAT;
+        }
+        throw std::invalid_argument("Invalid Material Type");
+    }
 
     union {
         uchar3 color;
@@ -26,6 +37,14 @@ public:
     __host__ Material(Texture tex): texture(std::move(tex)) {
         type = TEXTURE;
     };
+
+    __host__ Material(D_Material o): type(fromDomain(o.type)) {
+        if (type == FLAT) {
+            color = {o.color.x, o.color.y, o.color.z,};
+        }else {
+            new(&texture) Texture(Texture::loadFromFile(o.texture_path));
+        }
+    }
 
     __host__ Material(Material&& o) noexcept: type(o.type) {
         if (type == TEXTURE) {

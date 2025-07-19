@@ -15,9 +15,7 @@
 template class Buffer<Body>;
 
 template<typename T>
-Buffer<T>::Buffer(T* items, int elems): elems(elems), data(items) {
-    wrap_cuda([&]{return cudaMalloc(&device_data, sizeof(T) * elems);});
-}
+Buffer<T>::Buffer(T* items, int elems): elems(elems), data(items) {}
 
 template<typename T>
 Buffer<T>::~Buffer() {

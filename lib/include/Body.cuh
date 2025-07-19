@@ -4,7 +4,9 @@
 
 #include "Material.cuh"
 #include "Transferable.cuh"
-#include "universalConstants.hpp"
+#include "api/UniversalConstants.h"
+#include "api/D_Body.h"
+
 
 class Body: public Transferable<Body> {
     public:
@@ -13,6 +15,13 @@ class Body: public Transferable<Body> {
     float3 position;
     float3 rotation;
     Material material;
+    Body();
+    Body(D_Body o):
+        radius(o.radius),
+        mass(o.mass),
+        position({o.position.x, o.position.y, o.position.z,}),
+        rotation({o.rotation.x, o.rotation.y, o.rotation.z,}),
+        material(o.material){}
     Body(Body&& o) noexcept:
         radius(o.radius),
         mass(o.mass),
