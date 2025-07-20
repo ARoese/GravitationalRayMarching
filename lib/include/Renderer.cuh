@@ -7,11 +7,12 @@
 
 #include "CudaContext.cuh"
 #include "Scene.cuh"
+#include "RenderConfig.cuh"
 
 class Renderer {
 public:
-    FrameBuffer renderGPU(Scene& scene, CudaContext& cudaContext);
-    FrameBuffer renderCPU(Scene& scene);
+    FrameBuffer renderGPU(const Scene &scene, const RenderConfig &config, const CudaContext &cudaContext);
+    FrameBuffer renderCPU(const Scene &scene, const RenderConfig &config);
 };
 
 

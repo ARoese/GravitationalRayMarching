@@ -107,8 +107,7 @@ int main(int argc, char* argv[]) {
         Camera(
                 {50*DEG2RAD, 50*DEG2RAD},
                 {0,0,0},
-                {0,0,0},
-                {imageDim,imageDim}
+                {0,0,0}
             ),
             Buffer<Body>(bodies, 1),
             Material(Texture::loadFromFile(starsPath)),
@@ -116,10 +115,14 @@ int main(int argc, char* argv[]) {
     );
 
     Renderer renderer;
+    RenderConfig config (
+        {imageDim, imageDim},
+        default_MarchConfig
+    );
     CudaContext cuContext;
 
     auto renderScene = [&](Scene& scene) {
-        return renderOnCPU ? renderer.renderCPU(scene) : renderer.renderGPU(scene, cuContext);
+        return renderOnCPU ? renderer.renderCPU(scene, config) : renderer.renderGPU(scene, config, cuContext);
     };
 
     renderRotationCenteredOn(

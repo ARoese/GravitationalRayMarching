@@ -9,13 +9,11 @@ class Camera {
     float2 fov = {90*RAD2DEG, 90*RAD2DEG};
     float3 camPos = {0,0,0};
     float3 camRot = {0,0,0};
-    uint2 resolution = {255,255};
-    __host__ Camera(float2 fov, float3 camPos, float3 camRot, uint2 resolution);
+    __host__ Camera(float2 fov, float3 camPos, float3 camRot);
     __host__ Camera(D_Camera o) :
         fov({o.fov.x, o.fov.y}),
         camPos({o.camPos.x, o.camPos.y, o.camPos.z,}),
-        camRot({o.camRot.x, o.camRot.y, o.camRot.z,}),
-        resolution({o.resolution.x, o.resolution.y}) {}
+        camRot({o.camRot.x, o.camRot.y, o.camRot.z,}) {}
 };
 
 #endif

@@ -11,6 +11,7 @@
 #include "D_Camera.h"
 #include "C_Texture.h"
 #include "C_Rendering.h"
+#include "D_RenderConfig.h"
 #include "UniversalConstants.h"
 
 void printUsage(char* programName){
@@ -85,8 +86,7 @@ int main(int argc, char* argv[]) {
         {
                 {50*DEG2RAD, 50*DEG2RAD},
                 {0,0,0},
-                {0,0,0},
-                {imageDim,imageDim}
+                {0,0,0}
             },
             &bodies[0],
             2,
@@ -96,9 +96,13 @@ int main(int argc, char* argv[]) {
     };
 
     C_Scene_Ptr scene_ptr = make_Scene(scene);
-    C_Texture_Ptr render_result = renderOnCPU
-        ? render_cpu(scene_ptr)
-        : render_gpu(scene_ptr);
+    D_RenderConfig config = {
+        {imageDim, imageDim},
+        default_MarchConfig
+    };
+    const C_Texture_Ptr render_result = renderOnCPU
+        ? render_cpu(scene_ptr, config)
+        : render_gpu(scene_ptr, config);
 
     printf("Done rendering\n");
 

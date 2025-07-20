@@ -15,7 +15,6 @@
             d_float2 fov;
             d_float3 camPos;
             d_float3 camRot;
-            d_uint2 resolution;
         } D_Camera;
         COMPAT_FOR(Camera)
 
