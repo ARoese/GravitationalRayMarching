@@ -23,9 +23,14 @@ target_include_directories(GravitationalRayMarchingMainC PUBLIC lib/include/api)
 target_link_libraries(GravitationalRayMarchingMainC PUBLIC GravitationalRayMarching)
 
 # move assets dir to out dir
-add_custom_command(TARGET GravitationalRayMarchingMain TARGET GravitationalRayMarchingMainC POST_BUILD
+add_custom_command(TARGET GravitationalRayMarchingMain POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/assets/ $<TARGET_FILE_DIR:GravitationalRayMarchingMain>/assets)
+
+# move assets dir to out dir
+add_custom_command(TARGET GravitationalRayMarchingMainC POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/assets/ $<TARGET_FILE_DIR:GravitationalRayMarchingMainC>/assets)
 
 set_target_properties(GravitationalRayMarching PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON LINKER_LANGUAGE CUDA)
@@ -40,7 +45,7 @@ add_custom_target( clear_rendered_output_frames
 )
 
 add_custom_target( render_frames_gpu
-        COMMAND GravitationalRayMarchingMain gpu 256 64 true
+        COMMAND GravitationalRayMarchingMain gpu 128 64 true
         WORKING_DIRECTORY $<TARGET_FILE_DIR:GravitationalRayMarchingMain>
         COMMENT "render frames on gpu and place in outputs dir"
 )
