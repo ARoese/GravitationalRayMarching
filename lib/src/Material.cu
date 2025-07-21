@@ -4,6 +4,8 @@
 
 #include "Material.cuh"
 #include <assert.h>
+constexpr uchar3 debug_purple = {255, 0, 255};
+
 void Material::toDeviceImpl(Material *deviceLocation) const {
     simpleCopyToDevice(deviceLocation);
     switch (type) {
@@ -44,4 +46,5 @@ uchar3 Material::sample(float2 uv) const {
             return color;
     }
     assert(false);
+    return debug_purple;
 }

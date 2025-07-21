@@ -6,12 +6,15 @@
 #include <iostream>
 #include <vector>
 
+#include "CancellationToken.cuh"
 #include "cutil_math.cuh"
 #include "cmatrix.cuh"
 
 #include "RenderConfig.cuh"
 #include "Ray.cuh"
 #include "loadImage.hpp"
+
+constexpr uchar3 debug_purple = {255, 0, 255};
 
 __device__ __host__ float2 uvMapSphere(const float3 rayPos, const float3 bodyPos, const float3 bodyRot){
     //https://en.wikipedia.org/wiki/UV_mapping
@@ -25,7 +28,10 @@ __device__ __host__ float2 uvMapSphere(const float3 rayPos, const float3 bodyPos
     return {u,v};
 }
 
-__device__ __host__ uchar3 renderPixel(const Scene& scene, const RenderConfig& config, float2 screenSpace){
+__device__ __host__ uchar3 renderPixel(const Scene& scene, const RenderConfig& config, const CancellationToken& ct, float2 screenSpace){
+    if (ct.cancelled) {
+        return debug_purple;
+    }
     //angular screenspace coordinates from [-fov.x, fov.x] and so on
     const float2 screenAngle = (screenSpace-0.5) * scene.cam.fov;
 
@@ -41,6 +47,11 @@ __device__ __host__ uchar3 renderPixel(const Scene& scene, const RenderConfig& c
 
     Ray r(scene.cam.camPos, rayDir);
     for(int i = 0; i < config.marchConfig.marchSteps; i++){
+        //TODO: This might destroy performance due to warp desync and bad branch prediction. Verify this does not happen.
+        //TODO: the selection of 128 is arbitrary here. It should probably be optimized or configurable
+        if (i % 128 == 0 && ct.cancelled) {
+            return debug_purple;
+        }
         auto& bodies = scene.bodies;
         r.step(config.marchConfig.marchStepDeltaTime, bodies, scene.constants);
         for(int b = 0; b<bodies.elems; b++){
@@ -80,7 +91,12 @@ __device__ __host__ float2 calculate_screenspace_coords(const uint2 resolution, 
     return screenSpace;
 }
 
-__global__ void renderFrameKernel(const Scene* const scene, const RenderConfig* const config, FrameBuffer* frameBuffer){
+__global__ void renderFrameKernel(
+    const Scene* const scene,
+    const RenderConfig* const config,
+    const CancellationToken* const ct,
+    FrameBuffer* frameBuffer
+    ){
     const unsigned int xIdx = threadIdx.x + blockIdx.x * blockDim.x;
     const unsigned int yIdx = threadIdx.y + blockIdx.y * blockDim.y;
     uint2 idx = make_uint2(xIdx, yIdx);
@@ -88,15 +104,20 @@ __global__ void renderFrameKernel(const Scene* const scene, const RenderConfig* 
         return;
     }
     auto scr = calculate_screenspace_coords(config->resolution, idx);
-    auto pixelColor = renderPixel(*scene, *config, scr);
+    auto pixelColor = renderPixel(*scene, *config, *ct, scr);
     (*frameBuffer)[idx] = pixelColor;
 }
 
-FrameBuffer Renderer::renderGPU(const Scene& scene, const RenderConfig& config, const CudaContext& cudaContext) {
+std::optional<FrameBuffer> Renderer::renderGPU(const Scene& scene, const RenderConfig& config, const CudaContext& cudaContext, const CancellationToken &ct) {
     FrameBuffer buffer(config.resolution);
     scene.toDevice();
     config.toDevice();
+    ct.toDevice();
     buffer.toDevice();
+
+    if (ct.cancelled) {
+        return {};
+    }
 
     //max of 29 right now
     //24 seems optimal since we can't reach 32 due to register pressure
@@ -107,15 +128,33 @@ FrameBuffer Renderer::renderGPU(const Scene& scene, const RenderConfig& config, 
     // TODO: put this on the cuContext
     wrap_cuda([&]{return cudaDeviceSynchronize();});
 
-    renderFrameKernel<<<{bdim,bdim},{tdim,tdim}, 0, cudaContext.renderStream>>>(scene.device_ptr, config.device_ptr, buffer.device_ptr);
+    if (ct.cancelled) {
+        return {};
+    }
+
+    // this must be launched on a stream in order for cancellation to work properly.
+    renderFrameKernel<<<
+        {bdim,bdim},
+        {tdim,tdim},
+        0,
+        cudaContext.renderStream
+    >>>(
+        scene.device_ptr,
+        config.device_ptr,
+        ct.device_ptr,
+        buffer.device_ptr
+        );
     wrap_cuda([&]{return cudaStreamSynchronize(cudaContext.renderStream);});
     wrap_cuda([]{return cudaGetLastError();});
 
+    if (ct.cancelled) {
+        return {};
+    }
     buffer.fromDevice();
     return buffer;
 }
 
-FrameBuffer Renderer::renderCPU(const Scene& scene, const RenderConfig& config) {
+std::optional<FrameBuffer> Renderer::renderCPU(const Scene& scene, const RenderConfig& config, const CancellationToken &ct) {
     int numThreads = 12;
 
     //spawn threads
@@ -134,12 +173,25 @@ FrameBuffer Renderer::renderCPU(const Scene& scene, const RenderConfig& config) 
             for(int y = tid; y < config.resolution.y; y+=numThreads){
                 for(int x = 0; x < config.resolution.x; x++){
                     const auto idx = make_uint2(x,y);
-                    auto scr = calculate_screenspace_coords(config.resolution, idx);
-                    frameBuffer[idx] = renderPixel(scene, config, scr);
+                    const auto scr = calculate_screenspace_coords(config.resolution, idx);
+                    frameBuffer[idx] = renderPixel(scene, config, ct, scr);
                 }
             }
         }
     );
 
+    if (ct.cancelled) {
+        return {};
+    }
+
     return frameBuffer;
+}
+
+FrameBuffer Renderer::renderGPU(const Scene &scene, const RenderConfig &config, const CudaContext &cudaContext) {
+    const auto ct = CancellationToken();
+    return *renderGPU(scene, config, cudaContext, ct);
+}
+FrameBuffer Renderer::renderCPU(const Scene &scene, const RenderConfig &config) {
+    const auto ct = CancellationToken();
+    return *renderCPU(scene, config, ct);
 }

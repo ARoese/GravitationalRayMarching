@@ -6,9 +6,9 @@
 #define COMPAT_VECTOR_TYPES_CUH
 #include "api/D_VectorTypes.h"
 
-uchar3 fromCompat(const d_uchar3& o);
-uint2 fromCompat( const d_uint2& o);
-float3 fromCompat(const d_float3& o);
-float2 fromCompat(const d_float2& o);
+__host__ __device__ uchar3 fromCompat(const d_uchar3& o);
+__host__ __device__ uint2 fromCompat( const d_uint2& o);
+__host__ __device__ float3 fromCompat(const d_float3& o);
+__host__ __device__ float2 fromCompat(const d_float2& o);
 
 #endif //COMPAT_VECTOR_TYPES_CUH

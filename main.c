@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include "D_Body.h"
 #include "D_Material.h"
@@ -34,10 +35,6 @@ D_Body makeBody( float radius, float mass, d_float3 position, d_float3 rotation,
         };
     return body;
 }
-
-typedef char bool;
-#define false 0;
-#define true 1;
 
 //3840,2160 is 4K
 int main(int argc, char* argv[]) {

@@ -5,6 +5,7 @@
 #include <filesystem>
 
 #include "camera.cuh"
+#include "CancellationToken.cuh"
 #include "cutil_math.cuh"
 #include "loadImage.hpp"
 #include "Renderer.cuh"
@@ -36,7 +37,7 @@ void renderRotationCenteredOn(
     Scene scene,
     Body& center,
     float distanceFromCenter,
-    std::function<FrameBuffer(Scene&)> renderScene
+    std::function<std::optional<FrameBuffer>(Scene&)> renderScene
     ) {
     float3 camRotCenter = center.position; //point that the camera rotates around
     for (int i = 0; i < numFrames; i++) {
@@ -51,11 +52,16 @@ void renderRotationCenteredOn(
         scene.cam.camRot = {0,0,angle+(float)M_PI};
 
         //render image
-        FrameBuffer frameResult = renderScene(scene);
-        auto destination = std::filesystem::path(destFolder)
-            .append("out.png")
-            .string();
-        saveImage(destination.c_str(), frameResult.data, frameResult.size, i);
+        auto frameResult = renderScene(scene);
+        if (frameResult) {
+            auto destination = std::filesystem::path(destFolder)
+                .append("out.png")
+                .string();
+            saveImage(destination.c_str(), frameResult->data, frameResult->size, i);
+        }else {
+            std::cout << "Render cancelled" << std::endl;
+        }
+
     }
 }
 
@@ -122,7 +128,16 @@ int main(int argc, char* argv[]) {
     CudaContext cuContext;
 
     auto renderScene = [&](Scene& scene) {
-        return renderOnCPU ? renderer.renderCPU(scene, config) : renderer.renderGPU(scene, config, cuContext);
+        CancellationToken ct;
+        auto cancellationThread = std::thread([&] {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            ct.cancel();
+        });
+        auto res = renderOnCPU
+            ? renderer.renderCPU(scene, config, ct)
+            : renderer.renderGPU(scene, config, cuContext, ct);
+        cancellationThread.detach();
+        return res;
     };
 
     renderRotationCenteredOn(
