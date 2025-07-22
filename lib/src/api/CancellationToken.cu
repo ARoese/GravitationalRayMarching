@@ -17,7 +17,7 @@ extern "C" {
         const auto ct_cast = static_cast<CancellationToken *>(ct);
         ct_cast->cancel();
     }
-    bool ct_wasCancelled(COMPAT_PTRTYPE(CancellationToken) ct) {
+    int ct_wasCancelled(COMPAT_PTRTYPE(CancellationToken) ct) {
         const auto ct_cast = static_cast<CancellationToken *>(ct);
         return ct_cast->cancelled;
     }

@@ -14,7 +14,7 @@
         COMPAT_DESTRUCTOR(CancellationToken);
 
         void ct_cancel(COMPAT_PTRTYPE(CancellationToken));
-        bool ct_wasCancelled(COMPAT_PTRTYPE(CancellationToken));
+        int ct_wasCancelled(COMPAT_PTRTYPE(CancellationToken));
 
 #ifdef __cplusplus
         }
