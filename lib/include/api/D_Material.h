@@ -18,7 +18,7 @@
 
             union {
                 d_uchar3 color;
-                char* texture_path;
+                const char* texture_path;
             };
         } D_Material;
 
