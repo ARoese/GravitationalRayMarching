@@ -5,6 +5,7 @@
 #ifndef TRANSFERABLE_CUH
 #define TRANSFERABLE_CUH
 #include <stdexcept>
+#include <cuda_runtime_api.h>
 #include "assert.h"
 #include "Utils.cuh"
 #include <mutex>

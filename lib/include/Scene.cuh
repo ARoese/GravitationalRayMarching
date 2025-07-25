@@ -10,7 +10,7 @@
 #include "body.cuh"
 #include "camera.cuh"
 #include <cuda/std/array>
-
+#include <cuda_runtime_api.h>
 #include "api/D_Scene.h"
 
 class Scene: public Transferable<Scene> {

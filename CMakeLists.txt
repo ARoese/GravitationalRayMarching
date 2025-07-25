@@ -2,9 +2,14 @@ cmake_minimum_required(VERSION 3.31)
 project(GravitationalRayMarching CUDA C CXX)
 
 set(CMAKE_CUDA_STANDARD 20)
+set(CMAKE_CXX_STANDARD 20)
+
+find_package(CUDAToolkit REQUIRED)
+
 add_library(GravitationalRayMarching STATIC)
 target_include_directories(GravitationalRayMarching PUBLIC lib/include)
 target_include_directories(GravitationalRayMarching PUBLIC lib/CImg)
+target_link_libraries(GravitationalRayMarching PUBLIC CUDA::cudart)
 file(GLOB LIB_SOURCES CONFIGURE_DEPENDS
         "lib/src/*.cu"
         "lib/src/api/*.cu"
@@ -14,7 +19,7 @@ target_compile_options(GravitationalRayMarching PRIVATE $<$<COMPILE_LANGUAGE:CUD
         -Wno-deprecated-gpu-targets
         >)
 
-add_executable(GravitationalRayMarchingMain main.cu)
+add_executable(GravitationalRayMarchingMain main.cpp)
 target_include_directories(GravitationalRayMarchingMain PUBLIC lib/include)
 target_link_libraries(GravitationalRayMarchingMain PUBLIC GravitationalRayMarching)
 
