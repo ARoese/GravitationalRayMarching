@@ -109,6 +109,9 @@ __global__ void renderFrameKernel(
 }
 
 std::optional<FrameBuffer> Renderer::renderGPU(const Scene& scene, const RenderConfig& config, const CudaContext& cudaContext, const CancellationToken &ct) {
+    if (config.resolution.x * config.resolution.y == 0) {
+        return {};
+    }
     FrameBuffer buffer(config.resolution);
     scene.toDevice();
     config.toDevice();
@@ -122,8 +125,9 @@ std::optional<FrameBuffer> Renderer::renderGPU(const Scene& scene, const RenderC
     //max of 29 right now
     //24 seems optimal since we can't reach 32 due to register pressure
     unsigned int tdim = 22; //FIXED: Square tdim in the below equation
-    int numBlocks = ((float)(config.resolution.x*config.resolution.y))/((float)(tdim*tdim));
+    int numBlocks = ceil((float)(config.resolution.x*config.resolution.y))/((float)(tdim*tdim));
     unsigned int bdim = (int)ceil(sqrt(numBlocks));
+    bdim = max(bdim, 1);
 
     // TODO: put this on the cuContext
     wrap_cuda([&]{return cudaDeviceSynchronize();});
